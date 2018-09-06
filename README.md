@@ -22,8 +22,8 @@ There are few possible approaches:
 ```cmake
 # Download FindFortran.cmake
 set(dest_file "${CMAKE_CURRENT_BINARY_DIR}/FindFortran.cmake")
-set(expected_hash "93ea0a7915aa88cb61e756dbad56875729548023ad660cd2a4d5019e906cbf2d")
-set(url "https://raw.githubusercontent.com/scikit-build/cmake-FindFortran/v0.1/FindFortran.cmake")
+set(expected_hash "6d297f458accd776140040b83e01fbee8fce29fc9509bdc836236b08170f6310")
+set(url "https://raw.githubusercontent.com/scikit-build/cmake-FindFortran/v0.2/FindFortran.cmake")
 if(NOT EXISTS ${dest_file})
   file(DOWNLOAD ${url} ${dest_file} EXPECTED_HASH SHA256=${expected_hash})
 else()
