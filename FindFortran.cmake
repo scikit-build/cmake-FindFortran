@@ -34,12 +34,15 @@ if(DEFINED CMAKE_Fortran_COMPILER)
   set(_find_compiler_hints HINTS ${fortran_bin_dir})
 endif()
 
+set(_required_vars)
+
 if(_id STREQUAL "Flang")
   find_program(Fortran_${_id}_EXECUTABLE flang ${_find_compiler_hints})
 
   if(CMAKE_HOST_WIN32)
-    get_filename_component(flang_bin_dir ${Fortran_FLANG_EXECUTABLE} DIRECTORY)
+    get_filename_component(flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
     find_program(Fortran_${_id}_CLANG_CL_EXECUTABLE clang-cl.exe HINTS ${flang_bin_dir})
+    list(APPEND _required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
   endif()
 
 elseif(_id STREQUAL "GNU")
@@ -54,13 +57,14 @@ endif()
 
 # outputs
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Vcvars
-  FOUND_VAR Fortran_${_id}_FOUND
+find_package_handle_standard_args(Fortran
   REQUIRED_VARS
     Fortran_${_id}_EXECUTABLE
+    ${_required_vars}
 )
 
 # clean
 unset(_find_compiler_hints)
 unset(_id)
+unset(_required_vars)
 
