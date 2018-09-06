@@ -84,7 +84,7 @@ git tag -s -m "FindFortran $tag" $tag
 git push origin $tag
 ```
 
-* Step 3: Update expected_hash in README
+* Step 3: Update release and expected_hash in README
 
 ```
 cd cmake-FindFortran
