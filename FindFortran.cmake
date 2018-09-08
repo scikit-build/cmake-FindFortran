@@ -30,6 +30,11 @@ These variables may be set to choose which compiler executable is looked up.
   is not in the ``PATH``, this variable may be set to ensure it is
   discovered.
 
+.. variable:: Fortran_IMPORTED_TARGET_NAMESPACE
+
+  This variable may be set to add imported targets for each implicit
+  link libraries and define  the :variable:`<Fortran_IMPORTED_TARGET_NAMESPACE>_Fortran_<Fortran_COMPILER_ID>_SUPPORT_LIBRARIES`.
+
 
 The module may be used multiple times to find different compilers.
 
@@ -77,6 +82,20 @@ This module will set the following variables in your project:
   List of directories corresponding to :variable:`Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES`.
 
   This list of directories may be used to configure a launcher.
+
+.. variable:: <Fortran_IMPORTED_TARGET_NAMESPACE>_Fortran_<Fortran_COMPILER_ID>_SUPPORT_LIBRARIES
+
+  This variable may be set to the list of :variable:`<Fortran_IMPORTED_TARGET_NAMESPACE>::Fortran_<Fortran_COMPILER_ID>_<IMPLICIT_LIBRARY_NAME>`.
+
+IMPORTED Targets
+^^^^^^^^^^^^^^^^
+
+.. variable:: <Fortran_IMPORTED_TARGET_NAMESPACE>::Fortran_<Fortran_COMPILER_ID>_<IMPLICIT_LIBRARY_NAME>
+
+  If :variable:`Fortran_IMPORTED_TARGET_NAMESPACE` is set, this module defines :prop_tgt:`IMPORTED` targets
+  for each implicit link libraries. Each target is named following the pattern
+  ``<Fortran_IMPORTED_TARGET_NAMESPACE>::Fortran_<Fortran_COMPILER_ID>_<IMPLICIT_LIBRARY_NAME>``
+  OpenCL has been found.
 
 #]=======================================================================]
 
@@ -394,6 +413,26 @@ if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
 endif()
 if(Fortran_${_id}_RUNTIME_LIBRARIES)
   list(APPEND _additional_required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
+endif()
+
+# imported targets
+if(Fortran_IMPORTED_TARGET_NAMESPACE)
+  set(_imported_targets)
+  if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+    set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
+    list(REMOVE_ITEM _link_libs c crypt dl gcc_s m nsl rt util pthread stdc++)
+    foreach(_lib IN LISTS _link_libs)
+      find_library(Fortran_${_id}_${_lib}_IMPLICIT_LINK_LIBRARY ${_lib} PATHS ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
+
+      add_library(${Fortran_IMPORTED_TARGET_NAMESPACE}::Fortran_${_id}_${_lib} UNKNOWN IMPORTED)
+      set_target_properties(${Fortran_IMPORTED_TARGET_NAMESPACE}::Fortran_${_id}_${_lib} PROPERTIES
+        IMPORTED_LOCATION "${Fortran_${_id}_${_lib}_IMPLICIT_LINK_LIBRARY}"
+        IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+        )
+      list(APPEND _imported_targets ${Fortran_IMPORTED_TARGET_NAMESPACE}::Fortran_${_id}_${_lib})
+    endforeach()
+  endif()
+  set(${Fortran_IMPORTED_TARGET_NAMESPACE}_Fortran_${_id}_SUPPORT_LIBRARIES ${_imported_targets})
 endif()
 
 # outputs
