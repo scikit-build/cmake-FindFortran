@@ -185,6 +185,58 @@ function(_fortran_set_runtime_cache_variables)
   endif()
 endfunction()
 
+function(_fortran_find_compiler_executable)
+  # Caller must defined these variables
+   _fortran_assert(DEFINED _id)
+
+  # Vendor-specific compiler names (copied from CMakeDetermineFortranCompiler.cmake)
+  set(_Fortran_COMPILER_NAMES_GNU       gfortran gfortran-4 g95 g77)
+  set(_Fortran_COMPILER_NAMES_Intel     ifort ifc efc)
+  set(_Fortran_COMPILER_NAMES_Absoft    af95 af90 af77)
+  set(_Fortran_COMPILER_NAMES_PGI       pgf95 pgfortran pgf90 pgf77)
+  set(_Fortran_COMPILER_NAMES_Flang     flang)
+  set(_Fortran_COMPILER_NAMES_PathScale pathf2003 pathf95 pathf90)
+  set(_Fortran_COMPILER_NAMES_XL        xlf)
+  set(_Fortran_COMPILER_NAMES_VisualAge xlf95 xlf90 xlf)
+  set(_Fortran_COMPILER_NAMES_NAG       nagfor)
+
+  list(APPEND _Fortran_COMPILER_NAMES_GNU f95)
+
+  # Adapted from _cmake_find_compiler() available in CMakeDetermineCompiler.cmake
+
+  # Use already-enabled languages for reference.
+  get_property(_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+  list(REMOVE_ITEM _languages "Fortran")
+
+  # Compiler list
+  set(_Fortran_COMPILER_LIST ${_Fortran_COMPILER_NAMES_${_id}})
+
+  # Look for directories containing compilers.
+  set(_Fortran_COMPILER_HINTS)
+  foreach(l IN ITEMS ${_languages} Fortran)
+    if(CMAKE_${l}_COMPILER AND IS_ABSOLUTE "${CMAKE_${l}_COMPILER}")
+      get_filename_component(_hint "${CMAKE_${l}_COMPILER}" PATH)
+      if(IS_DIRECTORY "${_hint}")
+        list(APPEND _Fortran_COMPILER_HINTS "${_hint}")
+      endif()
+      unset(_hint)
+    endif()
+  endforeach()
+
+  # Find the compiler.
+  if(_Fortran_COMPILER_HINTS)
+    # Prefer directories containing compilers of reference languages.
+    list(REMOVE_DUPLICATES _Fortran_COMPILER_HINTS)
+    find_program(Fortran_${_id}_EXECUTABLE
+      NAMES ${_Fortran_COMPILER_LIST}
+      PATHS ${_Fortran_COMPILER_HINTS}
+      NO_DEFAULT_PATH
+      DOC "${_id} Fortran compiler")
+  endif()
+
+  find_program(Fortran_${_id}_EXECUTABLE NAMES ${_Fortran_COMPILER_LIST} DOC "${_id} Fortran compiler")
+endfunction()
+
 if(NOT DEFINED Fortran_COMPILER_ID)
   if(Fortran_FIND_REQUIRED)
     message(FATAL_ERROR "Fortran_COMPILER_ID variable must be set")
@@ -196,20 +248,15 @@ if(NOT DEFINED Fortran_COMPILER_ID)
   endif()
 endif()
 
-set(_find_compiler_hints)
-if(DEFINED CMAKE_Fortran_COMPILER)
-  get_filename_component(fortran_bin_dir ${CMAKE_Fortran_COMPILER} DIRECTORY)
-  set(_find_compiler_hints HINTS ${fortran_bin_dir})
-endif()
-
 set(_additional_required_vars)
 
 # convenient shorter variable name
 set(_id ${Fortran_COMPILER_ID})
 
-if(_id STREQUAL "Flang")
-  find_program(Fortran_${_id}_EXECUTABLE flang ${_find_compiler_hints})
+# compiler executable
+_fortran_find_compiler_executable()
 
+if(_id STREQUAL "Flang")
   if(CMAKE_HOST_WIN32)
     # Set companion compiler variables
     get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
@@ -234,8 +281,6 @@ if(_id STREQUAL "Flang")
   endif()
 
 elseif(_id STREQUAL "GNU")
-  find_program(Fortran_${_id}_EXECUTABLE gfortran ${_find_compiler_hints})
-
   # Set implicit linking variables
   _fortran_retrieve_implicit_link_info_and_set_cache_variables()
 
