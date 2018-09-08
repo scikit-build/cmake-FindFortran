@@ -198,6 +198,15 @@ find_package_handle_standard_args(Fortran
     ${_required_vars}
 )
 
+# conveniently set CMAKE_Fortran_IMPLICIT_LINK_* variables it not already defined
+if(NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
+    AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES
+    AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
+  set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
+  set(CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
+  set(CMAKE_Fortran_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES ${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES})
+endif()
+
 # clean
 unset(_find_compiler_hints)
 unset(_id)
