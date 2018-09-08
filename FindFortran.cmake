@@ -16,9 +16,7 @@ These variables must be set to choose which compiler is looked up.
 
   Possible values are any valid Fortran compiler ID.
 
-
-The module may be used to find different compilers.
-
+The module may be used multiple times to find different compilers.
 
 Result Variables
 ^^^^^^^^^^^^^^^^
@@ -26,18 +24,34 @@ Result Variables
 This module will set the following variables in your project:
 
 .. variable:: Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_LIBRARIES
+.. variable:: Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_DIRECTORIES
+.. variable:: Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES
 
-  List of <Fortran_COMPILER_ID> implicit libraries.
+  List of implicit linking variables associated with ``<Fortran_COMPILER_ID>``.
 
-  Setting the variable CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES with this list enables
-  imported targets with IMPORTED_LINK_INTERFACE_LANGUAGES property set to Fortran to
-  automatically link with these libraries.
+  If the variables :variable:`CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES`,
+  :variable:`CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES`
+  and :variable:`CMAKE_Fortran_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES` are *NOT* already
+  defined in the including project, they will be conveniently initialized by this module
+  using the corresponding ``Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_*`` variables.
+
+  Note that setting the ``CMAKE_Fortran_IMPLICIT_LINK_*`` variables ensures that the
+  imported targets having the :variable:`IMPORTED_LINK_INTERFACE_LANGUAGES`
+  property set to "Fortran" automatically link against the associated libraries.
 
 .. variable:: Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES
 
-  List of <Fortran_COMPILER_ID> runtime libraries.
+  List of ``<Fortran_COMPILER_ID>`` runtime libraries.
 
-  These libraries must be distributed along side the compiler code.
+  These libraries must be distributed along side the compiled binaries. This may be done
+  by explicitly using :command:`install` or by setting the variable ``CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS``
+  when using :module:`InstallRequiredSystemLibraries` module.
+
+.. variable:: Fortran_<Fortran_COMPILER_ID>_RUNTIME_DIRECTORIES
+
+  List of directories corresponding to :variable:`Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES`.
+
+  This list of directories may be used to configure a launcher.
 
 #]=======================================================================]
 
@@ -188,12 +202,12 @@ if(_id STREQUAL "Flang")
   find_program(Fortran_${_id}_EXECUTABLE flang ${_find_compiler_hints})
 
   if(CMAKE_HOST_WIN32)
+    # Set companion compiler variables
     get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
     find_program(Fortran_${_id}_CLANG_CL_EXECUTABLE clang-cl.exe HINTS ${_flang_bin_dir})
     list(APPEND _additional_required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
 
-
-    # Set *_IMPLICIT_LINK_* variables
+    # Set implicit linking variables
     if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
       set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
       set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
@@ -201,7 +215,7 @@ if(_id STREQUAL "Flang")
       _fortran_set_implicit_linking_cache_variables()
     endif()
 
-    # Set *_RUNTIME_LIBRARIES and *_RUNTIME_LIBRARY variables
+    # Set runtime variables
     set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
     set(_runtime_lib_dirs ${_flang_bin_dir})
     set(_runtime_lib_suffix ".dll")
@@ -213,13 +227,13 @@ if(_id STREQUAL "Flang")
 elseif(_id STREQUAL "GNU")
   find_program(Fortran_${_id}_EXECUTABLE gfortran ${_find_compiler_hints})
 
-  # Set *_IMPLICIT_LINK_* variables
+  # Set implicit linking variables
   _fortran_retrieve_implicit_link_info(${_id} ${Fortran_${_id}_EXECUTABLE} "")
 
-  # Set *_RUNTIME_LIBRARIES and *_RUNTIME_LIBRARY variables
+  # Set runtime variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
   list(REMOVE_DUPLICATES _link_libs)
-  list(REMOVE_ITEM _link_libs "c" "m")
+  list(REMOVE_ITEM _link_libs "c" "m") # There libraries are expected to be available
   set(_runtime_lib_dirs ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
   set(_runtime_lib_suffix ".so")
   _find_runtime_libs_and_set_variables()
@@ -254,7 +268,7 @@ find_package_handle_standard_args(Fortran
     ${_additional_required_vars}
 )
 
-# conveniently set CMAKE_Fortran_IMPLICIT_LINK_* variables it not already defined
+# conveniently set CMake implicit linking variables it not already defined
 if(NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
     AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES
     AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
