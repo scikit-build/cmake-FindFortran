@@ -182,7 +182,7 @@ if(DEFINED CMAKE_Fortran_COMPILER)
   set(_find_compiler_hints HINTS ${fortran_bin_dir})
 endif()
 
-set(_required_vars)
+set(_additional_required_vars)
 
 if(_id STREQUAL "Flang")
   find_program(Fortran_${_id}_EXECUTABLE flang ${_find_compiler_hints})
@@ -190,7 +190,7 @@ if(_id STREQUAL "Flang")
   if(CMAKE_HOST_WIN32)
     get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
     find_program(Fortran_${_id}_CLANG_CL_EXECUTABLE clang-cl.exe HINTS ${_flang_bin_dir})
-    list(APPEND _required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
+    list(APPEND _additional_required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
 
 
     # Set *_IMPLICIT_LINK_* variables
@@ -240,10 +240,10 @@ _fortran_assert(DEFINED Fortran_${_id}_RUNTIME_DIRECTORIES)
 
 # directory variable is required if corresponding library variable is non-empty
 if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
-  list(APPEND _required_vars Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+  list(APPEND _additional_required_vars Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
 endif()
 if(Fortran_${_id}_RUNTIME_LIBRARIES)
-  list(APPEND _required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
+  list(APPEND _additional_required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
 endif()
 
 # outputs
@@ -251,7 +251,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Fortran
   REQUIRED_VARS
     Fortran_${_id}_EXECUTABLE
-    ${_required_vars}
+    ${_additional_required_vars}
 )
 
 # conveniently set CMAKE_Fortran_IMPLICIT_LINK_* variables it not already defined
@@ -264,6 +264,6 @@ if(NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
 endif()
 
 # clean
+unset(_additional_required_vars)
 unset(_find_compiler_hints)
 unset(_id)
-unset(_required_vars)
