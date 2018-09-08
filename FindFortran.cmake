@@ -286,31 +286,30 @@ set(_id ${Fortran_COMPILER_ID})
 # compiler executable
 _fortran_find_compiler_executable()
 
-if(_id STREQUAL "Flang")
-  if(CMAKE_HOST_WIN32)
-    # Set companion compiler variables
-    get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
-    find_program(Fortran_${_id}_CLANG_CL_EXECUTABLE clang-cl.exe HINTS ${_flang_bin_dir})
-    list(APPEND _additional_required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
+if(_id STREQUAL "Flang" AND CMAKE_HOST_WIN32)
+  # Set companion compiler variables
+  get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
+  find_program(Fortran_${_id}_CLANG_CL_EXECUTABLE clang-cl.exe HINTS ${_flang_bin_dir})
+  list(APPEND _additional_required_vars Fortran_${_id}_CLANG_CL_EXECUTABLE)
 
-    # Set implicit linking variables
-    if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
-      set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
-      set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
-      set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES )
-      _fortran_set_implicit_linking_cache_variables()
-    endif()
-
-    # Set runtime variables
-    set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
-    set(_runtime_lib_dirs ${_flang_bin_dir})
-    set(_runtime_lib_suffix ".dll")
-    _fortran_set_runtime_cache_variables()
-
-    unset(_flang_bin_dir)
+  # Set implicit linking variables
+  if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+    set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
+    set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
+    set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES )
+    _fortran_set_implicit_linking_cache_variables()
   endif()
 
-elseif(_id STREQUAL "GNU")
+  # Set runtime variables
+  set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
+  set(_runtime_lib_dirs ${_flang_bin_dir})
+  set(_runtime_lib_suffix ".dll")
+  _fortran_set_runtime_cache_variables()
+
+  unset(_flang_bin_dir)
+
+elseif(_id MATCHES "^Flang|GNU$")
+
   # Set implicit linking variables
   _fortran_retrieve_implicit_link_info_and_set_cache_variables()
 
