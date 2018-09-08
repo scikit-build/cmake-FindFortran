@@ -41,8 +41,18 @@ This module will set the following variables in your project:
 
 #]=======================================================================]
 
+function(_fortran_assert)
+  if(NOT (${ARGN}))
+    message(FATAL_ERROR "assertion error [${ARGN}]")
+  endif()
+endfunction()
+
 function(_fortran_set_implicit_linking_cache_variables)
-  # Caller must defined these variables: _id, Fortran_${_id}_IMPLICIT_LINK_*
+  # Caller must defined these variables
+  _fortran_assert(DEFINED _id)
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
 
   message(STATUS "Fortran_${_id}_IMPLICIT_LINK_LIBRARIES=${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}")
   message(STATUS "Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES=${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}")
@@ -59,6 +69,10 @@ function(_fortran_set_implicit_linking_cache_variables)
 endfunction()
 
 function(_fortran_retrieve_implicit_link_info _id _fortran_compiler _additional_cmake_options)
+  # Caller must defined these variables
+  _fortran_assert(DEFINED _id)
+  _fortran_assert(DEFINED Fortran_${_id}_EXECUTABLE)
+
   if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
     set(_desc "Retrieving ${_id} Fortran compiler implicit link info")
     message(STATUS ${_desc})
@@ -109,6 +123,12 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
 endfunction()
 
 function(_find_runtime_libs_and_set_variables)
+  # Caller must defined these variables
+  _fortran_assert(DEFINED _id)
+  _fortran_assert(DEFINED _link_libs)
+  _fortran_assert(DEFINED _runtime_lib_dirs)
+  _fortran_assert(DEFINED _runtime_lib_suffix)
+
   if(NOT DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
     set(CMAKE_FIND_LIBRARY_SUFFIXES "${_runtime_lib_suffix}")
 
@@ -209,6 +229,21 @@ elseif(_id MATCHES "^Intel|SunPro|Cray|G95|PathScale|Absoft|zOS|XL|VisualAge|PGI
 
 else()
   message(FATAL_ERROR "Fortran_COMPILER_ID [${_id}] is unknown")
+endif()
+
+# all variables must be defined
+_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
+_fortran_assert(DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
+_fortran_assert(DEFINED Fortran_${_id}_RUNTIME_DIRECTORIES)
+
+# directory variable is required if corresponding library variable is non-empty
+if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+  list(APPEND _required_vars Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+endif()
+if(Fortran_${_id}_RUNTIME_LIBRARIES)
+  list(APPEND _required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
 endif()
 
 # outputs
