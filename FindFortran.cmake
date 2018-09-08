@@ -51,6 +51,12 @@ This module will set the following variables in your project:
   by explicitly using :command:`install` or by setting the variable ``CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS``
   when using :module:`InstallRequiredSystemLibraries` module.
 
+  Libraries expected to be available on most systems are not listed. This applies
+  only to unix system where the list was derived from the `manylinux1 policy
+  <https://www.python.org/dev/peps/pep-0513/#the-manylinux1-policy>`_. Libraries
+  excluded on unix are ``c``, ``crypt``, ``dl``, ``gcc_s``, ``m``, ``nsl``, ``rt``,
+  ``util``, ``pthread`` and ``stdc++``.
+
 .. variable:: Fortran_<Fortran_COMPILER_ID>_RUNTIME_DIRECTORIES
 
   List of directories corresponding to :variable:`Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES`.
@@ -311,7 +317,9 @@ elseif(_id STREQUAL "GNU")
   # Set runtime variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
   list(REMOVE_DUPLICATES _link_libs)
-  list(REMOVE_ITEM _link_libs "c" "m") # There libraries are expected to be available
+  # These libraries are expected to be available.
+  # See https://www.python.org/dev/peps/pep-0513/#the-manylinux1-policy
+  list(REMOVE_ITEM _link_libs c crypt dl gcc_s m nsl rt util pthread stdc++)
   set(_runtime_lib_dirs ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
   set(_runtime_lib_suffix ".so")
   _fortran_set_runtime_cache_variables()
