@@ -146,7 +146,7 @@ function(_find_runtime_libs_and_set_variables)
   if(NOT DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
     set(CMAKE_FIND_LIBRARY_SUFFIXES "${_runtime_lib_suffix}")
 
-    set(runtime_libs)
+    set(_runtime_libs)
     set(_runtime_dirs)
     foreach(_lib IN LISTS _link_libs)
       get_filename_component(_lib ${_lib} NAME_WE)
@@ -158,14 +158,14 @@ function(_find_runtime_libs_and_set_variables)
         unset(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY CACHE) # Do not pollute the project cache
         continue()
       endif()
-      list(APPEND runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
+      list(APPEND _runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
 
       get_filename_component(_runtime_dir ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} DIRECTORY)
       list(APPEND _runtime_dirs ${_runtime_dir})
     endforeach()
     list(REMOVE_DUPLICATES _runtime_dirs)
 
-    set(Fortran_${_id}_RUNTIME_LIBRARIES ${runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
+    set(Fortran_${_id}_RUNTIME_LIBRARIES ${_runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
     mark_as_advanced(Fortran_${_id}_RUNTIME_LIBRARIES)
 
     set(Fortran_${_id}_RUNTIME_DIRECTORIES ${_runtime_dirs} CACHE FILEPATH "${_id} Fortran compiler runtime directories")
