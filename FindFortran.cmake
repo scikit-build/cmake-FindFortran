@@ -33,7 +33,7 @@ This module will set the following variables in your project:
   imported targets with IMPORTED_LINK_INTERFACE_LANGUAGES property set to Fortran to
   automatically link with these libraries.
 
-.. variable:: Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBS
+.. variable:: Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES
 
   List of <Fortran_COMPILER_ID> runtime libraries.
 
@@ -109,7 +109,7 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
 endfunction()
 
 function(_find_runtime_libs_and_set_variables)
-  if(NOT DEFINED Fortran_${_id}_RUNTIME_LIBS)
+  if(NOT DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
     set(CMAKE_FIND_LIBRARY_SUFFIXES "${_runtime_lib_suffix}")
 
     set(runtime_libs)
@@ -131,13 +131,13 @@ function(_find_runtime_libs_and_set_variables)
     endforeach()
     list(REMOVE_DUPLICATES _runtime_dirs)
 
-    set(Fortran_${_id}_RUNTIME_LIBS ${runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
-    mark_as_advanced(Fortran_${_id}_RUNTIME_LIBS)
+    set(Fortran_${_id}_RUNTIME_LIBRARIES ${runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
+    mark_as_advanced(Fortran_${_id}_RUNTIME_LIBRARIES)
 
     set(Fortran_${_id}_RUNTIME_DIRECTORIES ${_runtime_dirs} CACHE FILEPATH "${_id} Fortran compiler runtime directories")
     mark_as_advanced(Fortran_${_id}_RUNTIME_DIRECTORIES)
 
-    message(STATUS "Fortran_${_id}_RUNTIME_LIBS=${Fortran_${_id}_RUNTIME_LIBS}")
+    message(STATUS "Fortran_${_id}_RUNTIME_LIBRARIES=${Fortran_${_id}_RUNTIME_LIBRARIES}")
     message(STATUS "Fortran_${_id}_RUNTIME_DIRECTORIES=${Fortran_${_id}_RUNTIME_DIRECTORIES}")
   endif()
 endfunction()
@@ -181,7 +181,7 @@ if(_id STREQUAL "Flang")
       _fortran_set_implicit_linking_cache_variables()
     endif()
 
-    # Set *_RUNTIME_LIBS and *_RUNTIME_LIBRARY variables
+    # Set *_RUNTIME_LIBRARIES and *_RUNTIME_LIBRARY variables
     set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
     set(_runtime_lib_dirs ${_flang_bin_dir})
     set(_runtime_lib_suffix ".dll")
@@ -196,7 +196,7 @@ elseif(_id STREQUAL "GNU")
   # Set *_IMPLICIT_LINK_* variables
   _fortran_retrieve_implicit_link_info(${_id} ${Fortran_${_id}_EXECUTABLE} "")
 
-  # Set *_RUNTIME_LIBS and *_RUNTIME_LIBRARY variables
+  # Set *_RUNTIME_LIBRARIES and *_RUNTIME_LIBRARY variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
   list(REMOVE_DUPLICATES _link_libs)
   list(REMOVE_ITEM _link_libs "c" "m")
