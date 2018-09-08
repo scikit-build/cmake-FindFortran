@@ -138,6 +138,9 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
       file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log
         "${_desc} passed with the following output:\n"
         "${output}\n")
+      if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+        list(REMOVE_DUPLICATES Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+      endif()
     else()
       set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES NOTFOUND)
       set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES NOTFOUND)
@@ -325,7 +328,6 @@ elseif(_id MATCHES "^Flang|GNU|G95|Intel|SunPro|Cray|G95|PathScale|Absoft|XL|Vis
 
   # Set runtime variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
-  list(REMOVE_DUPLICATES _link_libs)
   # These libraries are expected to be available.
   # See https://www.python.org/dev/peps/pep-0513/#the-manylinux1-policy
   list(REMOVE_ITEM _link_libs c crypt dl gcc_s m nsl rt util pthread stdc++)
