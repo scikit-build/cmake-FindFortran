@@ -41,6 +41,22 @@ This module will set the following variables in your project:
 
 #]=======================================================================]
 
+function(_fortran_set_implicit_linking_cache_variables)
+  # Caller must defined these variables: _id, Fortran_${_id}_IMPLICIT_LINK_*
+
+  message(STATUS "Fortran_${_id}_IMPLICIT_LINK_LIBRARIES=${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}")
+  message(STATUS "Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES=${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}")
+  message(STATUS "Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES=${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}")
+
+  set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES "${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}" CACHE STRING "${_id} Fortran compiler implicit link libraries")
+  mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+
+  set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}" CACHE STRING "${_id} Fortran compiler implicit link directories")
+  mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+
+  set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}" CACHE STRING "${_id} Fortran compiler implicit link framework directories")
+  mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
+endfunction()
 
 function(_fortran_retrieve_implicit_link_info _id _fortran_compiler _additional_cmake_options)
   if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
@@ -88,18 +104,7 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
         "${output}\n")
     endif()
     message(STATUS "${_desc} - done")
-    message(STATUS "Fortran_${_id}_IMPLICIT_LINK_LIBRARIES=${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}")
-    message(STATUS "Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES=${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}")
-    message(STATUS "Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES=${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}")
-
-    set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES "${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}" CACHE STRING "${lang} Fortran compiler implicit link libraries")
-    mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
-
-    set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}" CACHE STRING "${lang} Fortran compiler implicit link directories")
-    mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
-
-    set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}" CACHE STRING "${lang} Fortran compiler implicit link framework directories")
-    mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
+    _fortran_set_implicit_linking_cache_variables()
   endif()
 endfunction()
 
@@ -169,9 +174,12 @@ if(_id STREQUAL "Flang")
 
 
     # Set *_IMPLICIT_LINK_* variables
-    set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
-    set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
-    set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES )
+    if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+      set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
+      set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
+      set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES )
+      _fortran_set_implicit_linking_cache_variables()
+    endif()
 
     # Set *_RUNTIME_LIBS and *_RUNTIME_LIBRARY variables
     set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
