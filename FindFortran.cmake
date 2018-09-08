@@ -10,7 +10,10 @@ Finds a fortran compiler, support libraries and companion C/CXX compilers if any
 The module can be used when configuring a project or when running
 in cmake -P script mode.
 
-These variables may be set to choose which compiler is looked up.
+Input Variables
+^^^^^^^^^^^^^^^
+
+These variables may be set to choose which compiler executable is looked up.
 
 .. variable:: Fortran_COMPILER_ID
 
@@ -20,12 +23,24 @@ These variables may be set to choose which compiler is looked up.
   :variable:`CMAKE_<LANG>_COMPILER_ID` for Fortran language if
   enabled. If not, it is to the first enabled language beside of Fortran.
 
+.. variable:: Fortran_<Fortran_COMPILER_ID>_EXECUTABLE
+
+  This variable may be set to explicitly select the <Fortran_COMPILER_ID>
+  executable and bypass the discovery process. If the compile executable
+  is not in the ``PATH``, this variable may be set to ensure it is
+  discovered.
+
+
 The module may be used multiple times to find different compilers.
 
 Result Variables
 ^^^^^^^^^^^^^^^^
 
 This module will set the following variables in your project:
+
+.. variable:: Fortran_<Fortran_COMPILER_ID>_EXECUTABLE
+
+  Path to the <Fortran_COMPILER_ID> executable.
 
 .. variable:: Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_LIBRARIES
 .. variable:: Fortran_<Fortran_COMPILER_ID>_IMPLICIT_LINK_DIRECTORIES
