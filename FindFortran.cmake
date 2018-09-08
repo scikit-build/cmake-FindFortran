@@ -259,6 +259,21 @@ function(_fortran_find_compiler_executable)
   find_program(Fortran_${_id}_EXECUTABLE NAMES ${_Fortran_COMPILER_LIST} DOC "${_id} Fortran compiler")
 endfunction()
 
+function(_fortran_set_unix_runtime_cache_variables)
+  # Caller must defined these variables
+   _fortran_assert(DEFINED _id)
+   _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+   _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+
+  set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
+  # These libraries are expected to be available.
+  # See https://www.python.org/dev/peps/pep-0513/#the-manylinux1-policy
+  list(REMOVE_ITEM _link_libs c crypt dl gcc_s m nsl rt util pthread stdc++)
+  set(_runtime_lib_dirs ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
+  set(_runtime_lib_suffix ".so")
+  _fortran_set_runtime_cache_variables()
+endfunction()
+
 # First, prefer Fortran vendor
 if(NOT DEFINED Fortran_COMPILER_ID)
   if(CMAKE_Fortran_COMPILER_ID)
@@ -327,13 +342,7 @@ elseif(_id MATCHES "^Flang|GNU|G95|Intel|SunPro|Cray|G95|PathScale|Absoft|XL|Vis
   endif()
 
   # Set runtime variables
-  set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
-  # These libraries are expected to be available.
-  # See https://www.python.org/dev/peps/pep-0513/#the-manylinux1-policy
-  list(REMOVE_ITEM _link_libs c crypt dl gcc_s m nsl rt util pthread stdc++)
-  set(_runtime_lib_dirs ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
-  set(_runtime_lib_suffix ".so")
-  _fortran_set_runtime_cache_variables()
+  _fortran_set_unix_runtime_cache_variables()
 
 elseif(_id MATCHES "^zOS|HP$")
   message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is not yet supported")
