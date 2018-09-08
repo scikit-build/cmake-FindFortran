@@ -104,32 +104,37 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
 endfunction()
 
 function(_find_runtime_libs_and_set_variables)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES "${_runtime_lib_suffix}")
+  if(NOT DEFINED Fortran_${_id}_RUNTIME_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES "${_runtime_lib_suffix}")
 
-  set(runtime_libs)
-  set(_runtime_dirs)
-  foreach(_lib IN LISTS _link_libs)
-    get_filename_component(_lib ${_lib} NAME_WE)
-    find_library(
-      Fortran_${_id}_${_lib}_RUNTIME_LIBRARY ${_lib}
-      HINTS ${_runtime_lib_dirs} NO_DEFAULT_PATH
-      )
-    if(NOT Fortran_${_id}_${_lib}_RUNTIME_LIBRARY)
-      unset(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY CACHE) # Do not pollute the project cache
-      continue()
-    endif()
-    list(APPEND runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
+    set(runtime_libs)
+    set(_runtime_dirs)
+    foreach(_lib IN LISTS _link_libs)
+      get_filename_component(_lib ${_lib} NAME_WE)
+      find_library(
+        Fortran_${_id}_${_lib}_RUNTIME_LIBRARY ${_lib}
+        HINTS ${_runtime_lib_dirs} NO_DEFAULT_PATH
+        )
+      if(NOT Fortran_${_id}_${_lib}_RUNTIME_LIBRARY)
+        unset(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY CACHE) # Do not pollute the project cache
+        continue()
+      endif()
+      list(APPEND runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
 
-    get_filename_component(_runtime_dir ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} DIRECTORY)
-    list(APPEND _runtime_dirs ${_runtime_dir})
-  endforeach()
-  list(REMOVE_DUPLICATES _runtime_dirs)
+      get_filename_component(_runtime_dir ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} DIRECTORY)
+      list(APPEND _runtime_dirs ${_runtime_dir})
+    endforeach()
+    list(REMOVE_DUPLICATES _runtime_dirs)
 
-  set(Fortran_${_id}_RUNTIME_LIBS ${runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
-  mark_as_advanced(Fortran_${_id}_RUNTIME_LIBS)
+    set(Fortran_${_id}_RUNTIME_LIBS ${runtime_libs} CACHE FILEPATH "${_id} Fortran compiler runtime libraries")
+    mark_as_advanced(Fortran_${_id}_RUNTIME_LIBS)
 
-  set(Fortran_${_id}_RUNTIME_DIRECTORIES ${_runtime_dirs} CACHE FILEPATH "${_id} Fortran compiler runtime directories")
-  mark_as_advanced(Fortran_${_id}_RUNTIME_DIRECTORIES)
+    set(Fortran_${_id}_RUNTIME_DIRECTORIES ${_runtime_dirs} CACHE FILEPATH "${_id} Fortran compiler runtime directories")
+    mark_as_advanced(Fortran_${_id}_RUNTIME_DIRECTORIES)
+
+    message(STATUS "Fortran_${_id}_RUNTIME_LIBS=${Fortran_${_id}_RUNTIME_LIBS}")
+    message(STATUS "Fortran_${_id}_RUNTIME_DIRECTORIES=${Fortran_${_id}_RUNTIME_DIRECTORIES}")
+  endif()
 endfunction()
 
 if(NOT DEFINED Fortran_COMPILER_ID)
