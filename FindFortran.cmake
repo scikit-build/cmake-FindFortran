@@ -82,11 +82,12 @@ function(_fortran_set_implicit_linking_cache_variables)
   mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
 endfunction()
 
-function(_fortran_retrieve_implicit_link_info _id _fortran_compiler _additional_cmake_options)
+function(_fortran_retrieve_implicit_link_info_and_set_cache_variables)
   # Caller must defined these variables
   _fortran_assert(DEFINED _id)
   _fortran_assert(DEFINED Fortran_${_id}_EXECUTABLE)
 
+  set(_additional_cmake_options ${ARGN})
   if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
     set(_desc "Retrieving ${_id} Fortran compiler implicit link info")
     message(STATUS ${_desc})
@@ -108,7 +109,7 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
     endif()
     execute_process(
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CheckFortran${_id}
-      COMMAND ${CMAKE_COMMAND} . -DCMAKE_Fortran_COMPILER:FILEPATH=${_fortran_compiler}
+      COMMAND ${CMAKE_COMMAND} . -DCMAKE_Fortran_COMPILER:FILEPATH=${Fortran_${_id}_EXECUTABLE}
                                  ${_additional_cmake_options}
                                  -G ${CMAKE_GENERATOR}
                                  -A "${CMAKE_GENERATOR_PLATFORM}"
@@ -136,7 +137,7 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
   endif()
 endfunction()
 
-function(_find_runtime_libs_and_set_variables)
+function(_fortran_set_runtime_cache_variables)
   # Caller must defined these variables
   _fortran_assert(DEFINED _id)
   _fortran_assert(DEFINED _link_libs)
@@ -187,9 +188,6 @@ if(NOT DEFINED Fortran_COMPILER_ID)
   endif()
 endif()
 
-# convenient shorter variable name
-set(_id ${Fortran_COMPILER_ID})
-
 set(_find_compiler_hints)
 if(DEFINED CMAKE_Fortran_COMPILER)
   get_filename_component(fortran_bin_dir ${CMAKE_Fortran_COMPILER} DIRECTORY)
@@ -197,6 +195,9 @@ if(DEFINED CMAKE_Fortran_COMPILER)
 endif()
 
 set(_additional_required_vars)
+
+# convenient shorter variable name
+set(_id ${Fortran_COMPILER_ID})
 
 if(_id STREQUAL "Flang")
   find_program(Fortran_${_id}_EXECUTABLE flang ${_find_compiler_hints})
@@ -219,7 +220,7 @@ if(_id STREQUAL "Flang")
     set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
     set(_runtime_lib_dirs ${_flang_bin_dir})
     set(_runtime_lib_suffix ".dll")
-    _find_runtime_libs_and_set_variables()
+    _fortran_set_runtime_cache_variables()
 
     unset(_flang_bin_dir)
   endif()
@@ -228,7 +229,7 @@ elseif(_id STREQUAL "GNU")
   find_program(Fortran_${_id}_EXECUTABLE gfortran ${_find_compiler_hints})
 
   # Set implicit linking variables
-  _fortran_retrieve_implicit_link_info(${_id} ${Fortran_${_id}_EXECUTABLE} "")
+  _fortran_retrieve_implicit_link_info_and_set_cache_variables()
 
   # Set runtime variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
@@ -236,7 +237,7 @@ elseif(_id STREQUAL "GNU")
   list(REMOVE_ITEM _link_libs "c" "m") # There libraries are expected to be available
   set(_runtime_lib_dirs ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
   set(_runtime_lib_suffix ".so")
-  _find_runtime_libs_and_set_variables()
+  _fortran_set_runtime_cache_variables()
 
 elseif(_id MATCHES "^Intel|SunPro|Cray|G95|PathScale|Absoft|zOS|XL|VisualAge|PGI|HP|NAG$")
   message(FATAL_ERROR "Fortran_COMPILER_ID [${_id}] is not yet supported")
@@ -266,7 +267,7 @@ find_package_handle_standard_args(Fortran
   REQUIRED_VARS
     Fortran_${_id}_EXECUTABLE
     ${_additional_required_vars}
-)
+  )
 
 # conveniently set CMake implicit linking variables it not already defined
 if(NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
