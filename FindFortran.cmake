@@ -10,11 +10,15 @@ Finds a fortran compiler, support libraries and companion C/CXX compilers if any
 The module can be used when configuring a project or when running
 in cmake -P script mode.
 
-These variables must be set to choose which compiler is looked up.
+These variables may be set to choose which compiler is looked up.
 
 .. variable:: Fortran_COMPILER_ID
 
-  Possible values are any valid Fortran compiler ID.
+  Accepted values are any valid Fortran compiler ID.
+
+  If not already set in the including scope, it is set to the
+  :variable:`CMAKE_<LANG>_COMPILER_ID` for Fortran language if
+  enabled. If not, it is to the first enabled language beside of Fortran.
 
 The module may be used multiple times to find different compilers.
 
@@ -236,6 +240,24 @@ function(_fortran_find_compiler_executable)
 
   find_program(Fortran_${_id}_EXECUTABLE NAMES ${_Fortran_COMPILER_LIST} DOC "${_id} Fortran compiler")
 endfunction()
+
+# First, prefer Fortran vendor
+if(NOT DEFINED Fortran_COMPILER_ID)
+  if(CMAKE_Fortran_COMPILER_ID)
+    set(Fortran_COMPILER_ID ${CMAKE_Fortran_COMPILER_ID})
+  endif()
+endif()
+
+# Then, prefer already-enabled languages
+if(NOT DEFINED Fortran_COMPILER_ID)
+  get_property(_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+  list(REMOVE_ITEM _languages "Fortran")
+  if(_languages)
+    list(GET _languages 0 _first_lang)
+    set(Fortran_COMPILER_ID ${CMAKE_${_first_lang}_COMPILER_ID})
+  endif()
+  unset(_languages)
+endif()
 
 if(NOT DEFINED Fortran_COMPILER_ID)
   if(Fortran_FIND_REQUIRED)
