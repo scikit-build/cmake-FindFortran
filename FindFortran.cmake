@@ -94,7 +94,7 @@ function(_fortran_set_implicit_linking_cache_variables)
   mark_as_advanced(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
 endfunction()
 
-function(_fortran_retrieve_implicit_link_info_and_set_cache_variables)
+function(_fortran_retrieve_implicit_link_info)
   # Caller must defined these variables
   _fortran_assert(DEFINED _id)
   _fortran_assert(DEFINED Fortran_${_id}_EXECUTABLE)
@@ -149,8 +149,11 @@ set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES \\\"\${CMAKE_Fortran_IMPL
     if(NOT Fortran_FIND_QUIETLY)
       message(STATUS "${_desc} - done")
     endif()
-    _fortran_set_implicit_linking_cache_variables()
   endif()
+
+  set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES "${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES}" PARENT_SCOPE)
+  set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES}" PARENT_SCOPE)
+  set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "${Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}" PARENT_SCOPE)
 endfunction()
 
 function(_fortran_set_runtime_cache_variables)
@@ -315,7 +318,10 @@ if(_id STREQUAL "Flang" AND CMAKE_HOST_WIN32)
 elseif(_id MATCHES "^Flang|GNU|G95|Intel|SunPro|Cray|G95|PathScale|Absoft|XL|VisualAge|PGI|NAG$")
 
   # Set implicit linking variables
-  _fortran_retrieve_implicit_link_info_and_set_cache_variables()
+  if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+    _fortran_retrieve_implicit_link_info()
+    _fortran_set_implicit_linking_cache_variables()
+  endif()
 
   # Set runtime variables
   set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
