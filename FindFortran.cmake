@@ -212,6 +212,10 @@ function(_fortran_find_compiler_executable)
   set(_Fortran_COMPILER_NAMES_VisualAge xlf95 xlf90 xlf)
   set(_Fortran_COMPILER_NAMES_NAG       nagfor)
 
+  set(_Fortran_COMPILER_NAMES_G95       g95)
+  set(_Fortran_COMPILER_NAMES_Cray      ftn)
+  set(_Fortran_COMPILER_NAMES_SunPro    f90 f77)
+
   list(APPEND _Fortran_COMPILER_NAMES_GNU f95)
 
   # Adapted from _cmake_find_compiler() available in CMakeDetermineCompiler.cmake
@@ -308,7 +312,7 @@ if(_id STREQUAL "Flang" AND CMAKE_HOST_WIN32)
 
   unset(_flang_bin_dir)
 
-elseif(_id MATCHES "^Flang|GNU$")
+elseif(_id MATCHES "^Flang|GNU|G95|Intel|SunPro|Cray|G95|PathScale|Absoft|XL|VisualAge|PGI|NAG$")
 
   # Set implicit linking variables
   _fortran_retrieve_implicit_link_info_and_set_cache_variables()
@@ -323,7 +327,7 @@ elseif(_id MATCHES "^Flang|GNU$")
   set(_runtime_lib_suffix ".so")
   _fortran_set_runtime_cache_variables()
 
-elseif(_id MATCHES "^Intel|SunPro|Cray|G95|PathScale|Absoft|zOS|XL|VisualAge|PGI|HP|NAG$")
+elseif(_id MATCHES "^zOS|HP$")
   message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is not yet supported")
 
 else()
