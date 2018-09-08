@@ -293,10 +293,10 @@ elseif(_id STREQUAL "GNU")
   _fortran_set_runtime_cache_variables()
 
 elseif(_id MATCHES "^Intel|SunPro|Cray|G95|PathScale|Absoft|zOS|XL|VisualAge|PGI|HP|NAG$")
-  message(FATAL_ERROR "Fortran_COMPILER_ID [${_id}] is not yet supported")
+  message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is not yet supported")
 
 else()
-  message(FATAL_ERROR "Fortran_COMPILER_ID [${_id}] is unknown")
+  message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is invalid")
 endif()
 
 # all variables must be defined
