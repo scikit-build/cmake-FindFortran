@@ -196,6 +196,26 @@ function(_fortran_set_runtime_cache_variables)
         unset(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY CACHE) # Do not pollute the project cache
         continue()
       endif()
+      # Resolve symlinks:
+      #
+      #  If the resolved library name is different, it means it is most likely a
+      #  versioned library name.
+      #
+      #  In this case, we copy the real file to a temporary location renaming it
+      #  using the unversioned file name.
+      #
+      #  This helps packaging the library when using the "install()" command.
+      get_filename_component(_resolved_lib_path ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} REALPATH)
+      get_filename_component(_resolved_lib_filename ${_resolved_lib_path} NAME)
+      get_filename_component(_lib_filename ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} NAME)
+      if(NOT ${_lib_filename} STREQUAL "${_resolved_lib_filename}")
+        set(_copied_lib_dir ${CMAKE_BINARY_DIR}/CMakeFiles/Fortran${_id}RuntimeLibs)
+        file(COPY ${_resolved_lib_path} DESTINATION ${_copied_lib_dir})
+        file(RENAME ${_copied_lib_dir}/${_resolved_lib_filename} ${_copied_lib_dir}/${_lib_filename})
+        # Override existing cache entry
+        set(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY ${_copied_lib_dir}/${_lib_filename}
+          CACHE FILEPATH "Patch to unversioned ${_lib} runtime library" FORCE)
+      endif()
       list(APPEND _runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
 
       get_filename_component(_runtime_dir ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} DIRECTORY)
