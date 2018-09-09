@@ -357,7 +357,7 @@ if(_id STREQUAL "Flang")
     if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
       set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES flangmain flang flangrti ompstub)
       set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES ${_flang_bin_dir}/../lib)
-      set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES )
+      set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")
       _fortran_set_implicit_linking_cache_variables()
     endif()
 
