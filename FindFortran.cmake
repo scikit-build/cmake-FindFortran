@@ -122,6 +122,15 @@ function(_fortran_retrieve_implicit_link_info)
   if(NOT DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
     set(_desc "Retrieving ${_id} Fortran compiler implicit link info")
     _fortran_msg(${_desc})
+
+    if(NOT Fortran_${_id}_EXECUTABLE)
+      _fortran_msg("${_desc} - failed")
+      set(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES NOTFOUND PARENT_SCOPE)
+      set(Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES NOTFOUND PARENT_SCOPE)
+      set(Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES NOTFOUND PARENT_SCOPE)
+      return()
+    endif()
+
     file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CheckFortran${_id})
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CheckFortran${_id}/CMakeLists.txt"
       "cmake_minimum_required(VERSION ${CMAKE_VERSION})
