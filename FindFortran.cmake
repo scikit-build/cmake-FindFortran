@@ -292,8 +292,16 @@ function(_fortran_find_vendor_compiler_executable _id)
   # Compiler list
   set(_Fortran_COMPILER_LIST ${_Fortran_COMPILER_NAMES_${_id}})
 
-  # Look for directories containing compilers.
+  # Compiler directories
   set(_Fortran_COMPILER_HINTS)
+
+  # Consider directory associated with FC env. variable
+  if(DEFINED ENV{FC})
+    get_filename_component(_hint "$ENV{FC}" DIRECTORY)
+    list(APPEND _Fortran_COMPILER_HINTS "${_hint}")
+  endif()
+
+  # Look for directories containing compilers.
   foreach(l IN ITEMS ${_languages} Fortran)
     if(CMAKE_${l}_COMPILER AND IS_ABSOLUTE "${CMAKE_${l}_COMPILER}")
       get_filename_component(_hint "${CMAKE_${l}_COMPILER}" PATH)
