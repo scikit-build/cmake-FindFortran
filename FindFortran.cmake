@@ -236,9 +236,7 @@ function(_fortran_set_runtime_cache_variables)
   endif()
 endfunction()
 
-function(_fortran_find_compiler_executable)
-  # Caller must defined these variables
-   _fortran_assert(DEFINED _id)
+function(_fortran_find_vendor_compiler_executable _id)
 
   # Vendor-specific compiler names (copied from CMakeDetermineFortranCompiler.cmake)
   set(_Fortran_COMPILER_NAMES_GNU       gfortran gfortran-4 g95 g77)
@@ -334,13 +332,13 @@ if(NOT DEFINED Fortran_COMPILER_ID)
   endif()
 endif()
 
-set(_additional_required_vars)
+# compiler executable
+_fortran_find_vendor_compiler_executable(${Fortran_COMPILER_ID})
 
 # convenient shorter variable name
 set(_id ${Fortran_COMPILER_ID})
 
-# compiler executable
-_fortran_find_compiler_executable()
+set(_additional_required_vars)
 
 if(_id STREQUAL "Flang")
   get_filename_component(_flang_bin_dir ${Fortran_${_id}_EXECUTABLE} DIRECTORY)
