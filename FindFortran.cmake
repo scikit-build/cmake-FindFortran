@@ -10,6 +10,8 @@ Finds a fortran compiler, support libraries and companion C/CXX compilers if any
 The module can be used when configuring a project or when running
 in cmake -P script mode.
 
+The module may be used multiple times to find different compilers.
+
 Input Variables
 ^^^^^^^^^^^^^^^
 
@@ -17,11 +19,21 @@ These variables may be set to choose which compiler executable is looked up.
 
 .. variable:: Fortran_COMPILER_ID
 
-  Accepted values are any valid Fortran compiler ID.
+  This may be set to a string identifying a Fortran compiler vendor.
+  See :variable:`Fortran_COMPILER_VENDORS`.
 
-  If not already set in the including scope, it is set to the
-  :variable:`CMAKE_<LANG>_COMPILER_ID` for Fortran language if
-  enabled. If not, it is to the first enabled language beside of Fortran.
+  If not already set in the including scope, the value is set to:
+
+  * the ``<compiler_id>`` of :variable:`Fortran_<Fortran_COMPILER_ID>_EXECUTABLE`
+    if defined. If multiple variable of the same form are passed, ``<compiler_id>``
+    are tested in the order of :variable:`Fortran_COMPILER_VENDORS`.
+
+  * or the :variable:`CMAKE_<LANG>_COMPILER_ID` for Fortran language if defined.
+
+  * or the ``<compiler_id>`` of :variable:`CMAKE_<LANG>_COMPILER` for Fortran language.
+
+  * or the ``<compiler_id>` of any available Fortran compiler. A logic
+    similar to the one of :module:`CheckLanguage` is used.
 
 .. variable:: Fortran_<Fortran_COMPILER_ID>_EXECUTABLE
 
@@ -30,8 +42,6 @@ These variables may be set to choose which compiler executable is looked up.
   is not in the ``PATH``, this variable may be set to ensure it is
   discovered.
 
-
-The module may be used multiple times to find different compilers.
 
 Result Variables
 ^^^^^^^^^^^^^^^^
@@ -77,6 +87,10 @@ This module will set the following variables in your project:
   List of directories corresponding to :variable:`Fortran_<Fortran_COMPILER_ID>_RUNTIME_LIBRARIES`.
 
   This list of directories may be used to configure a launcher.
+
+.. variable:: Fortran_COMPILER_VENDORS
+
+  List of short unique string identifying supported Fortran compiler vendors.
 
 #]=======================================================================]
 
@@ -251,24 +265,23 @@ function(_fortran_set_runtime_cache_variables)
   endif()
 endfunction()
 
+set(Fortran_COMPILER_VENDORS GNU Intel Absoft PGI Flang PathScale XL VisualAge NAG G95 Cray SunPro)
+
+# Vendor-specific compiler names (copied from CMakeDetermineFortranCompiler.cmake)
+set(_Fortran_COMPILER_NAMES_GNU       gfortran gfortran-4 g95 g77 f95)
+set(_Fortran_COMPILER_NAMES_Intel     ifort ifc efc)
+set(_Fortran_COMPILER_NAMES_Absoft    af95 af90 af77)
+set(_Fortran_COMPILER_NAMES_PGI       pgf95 pgfortran pgf90 pgf77)
+set(_Fortran_COMPILER_NAMES_Flang     flang)
+set(_Fortran_COMPILER_NAMES_PathScale pathf2003 pathf95 pathf90)
+set(_Fortran_COMPILER_NAMES_XL        xlf)
+set(_Fortran_COMPILER_NAMES_VisualAge xlf95 xlf90 xlf)
+set(_Fortran_COMPILER_NAMES_NAG       nagfor)
+set(_Fortran_COMPILER_NAMES_G95       g95)
+set(_Fortran_COMPILER_NAMES_Cray      ftn)
+set(_Fortran_COMPILER_NAMES_SunPro    f90 f77)
+
 function(_fortran_find_vendor_compiler_executable _id)
-
-  # Vendor-specific compiler names (copied from CMakeDetermineFortranCompiler.cmake)
-  set(_Fortran_COMPILER_NAMES_GNU       gfortran gfortran-4 g95 g77)
-  set(_Fortran_COMPILER_NAMES_Intel     ifort ifc efc)
-  set(_Fortran_COMPILER_NAMES_Absoft    af95 af90 af77)
-  set(_Fortran_COMPILER_NAMES_PGI       pgf95 pgfortran pgf90 pgf77)
-  set(_Fortran_COMPILER_NAMES_Flang     flang)
-  set(_Fortran_COMPILER_NAMES_PathScale pathf2003 pathf95 pathf90)
-  set(_Fortran_COMPILER_NAMES_XL        xlf)
-  set(_Fortran_COMPILER_NAMES_VisualAge xlf95 xlf90 xlf)
-  set(_Fortran_COMPILER_NAMES_NAG       nagfor)
-
-  set(_Fortran_COMPILER_NAMES_G95       g95)
-  set(_Fortran_COMPILER_NAMES_Cray      ftn)
-  set(_Fortran_COMPILER_NAMES_SunPro    f90 f77)
-
-  list(APPEND _Fortran_COMPILER_NAMES_GNU f95)
 
   # Adapted from _cmake_find_compiler() available in CMakeDetermineCompiler.cmake
 
@@ -305,6 +318,105 @@ function(_fortran_find_vendor_compiler_executable _id)
   find_program(Fortran_${_id}_EXECUTABLE NAMES ${_Fortran_COMPILER_LIST} DOC "${_id} Fortran compiler")
 endfunction()
 
+function(_fortran_run_compiler_test test_id)
+  set(build_dir ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/CheckFortran_${test_id})
+  set(additonal_cmake_options ${ARGN})
+  file(REMOVE_RECURSE ${build_dir})
+  file(WRITE "${build_dir}/CMakeLists.txt"
+    "cmake_minimum_required(VERSION ${CMAKE_VERSION})
+project(CheckFortran Fortran)
+file(WRITE \"\${CMAKE_CURRENT_BINARY_DIR}/result.cmake\" \"
+  set(Fortran_COMPILER \\\"\${CMAKE_Fortran_COMPILER}\\\")
+  set(Fortran_COMPILER_ID \\\"\${CMAKE_Fortran_COMPILER_ID}\\\")
+\")
+")
+  if(CMAKE_GENERATOR_INSTANCE)
+    set(_D_CMAKE_GENERATOR_INSTANCE "-DCMAKE_GENERATOR_INSTANCE:INTERNAL=${CMAKE_GENERATOR_INSTANCE}")
+  else()
+    set(_D_CMAKE_GENERATOR_INSTANCE "")
+  endif()
+  execute_process(
+    WORKING_DIRECTORY ${build_dir}
+    COMMAND ${CMAKE_COMMAND} . -G ${CMAKE_GENERATOR}
+                               -A "${CMAKE_GENERATOR_PLATFORM}"
+                               -T "${CMAKE_GENERATOR_TOOLSET}"
+                               ${_D_CMAKE_GENERATOR_INSTANCE}
+                               ${additonal_cmake_options}
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE output
+    RESULT_VARIABLE result
+    )
+  include(${build_dir}/result.cmake OPTIONAL)
+  set(_desc "Fortran compiler test ${test_id}")
+  if(Fortran_COMPILER AND "${result}" STREQUAL "0")
+    file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log
+      "${_desc} passed with the following output:\n"
+      "${output}\n")
+    if(Fortran_COMPILER_ID STREQUAL "")
+      set(Fortran_COMPILER_ID "Fortran_COMPILER_ID-NOTFOUND")
+    endif()
+  else()
+    set(Fortran_COMPILER "Fortran_COMPILER-NOTFOUND")
+    set(Fortran_COMPILER_ID "Fortran_COMPILER_ID-NOTFOUND")
+    file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log
+      "${_desc} failed with the following output:\n"
+      "${output}\n")
+  endif()
+  set(Fortran_COMPILER ${Fortran_COMPILER} PARENT_SCOPE)
+  set(Fortran_COMPILER_ID ${Fortran_COMPILER_ID} PARENT_SCOPE)
+endfunction()
+
+function(_fortran_find_any_compiler_executable)
+  set(_desc "Looking up any Fortran compiler")
+  _fortran_msg(${_desc})
+  set(_details )
+  if(EXISTS "$ENV{FC}")
+    set(Fortran_COMPILER "$ENV{FC}")
+    _fortran_msg("${_desc} - ${Fortran_COMPILER} (value of FC environment variable)")
+    _fortran_get_compiler_id($ENV{FC})
+  else()
+    _fortran_run_compiler_test("any")
+    _fortran_msg("${_desc} - ${Fortran_COMPILER}")
+  endif()
+  set(Fortran_COMPILER_ID ${Fortran_COMPILER_ID} PARENT_SCOPE)
+  if(Fortran_COMPILER_ID)
+    set(Fortran_${Fortran_COMPILER_ID}_EXECUTABLE ${Fortran_COMPILER} PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(_fortran_get_compiler_id compiler_executable)
+  set(_desc "Extracting compiler identifier for ${compiler_executable}")
+  _fortran_msg("${_desc}")
+
+  # Get executable name
+  get_filename_component(compiler_name ${compiler_executable} NAME_WE)
+
+  # Check in list of known compiler names
+  foreach(possible_id IN LISTS Fortran_COMPILER_VENDORS)
+    foreach(possible_compiler_name IN LISTS _Fortran_COMPILER_NAMES_${possible_id})
+      if(compiler_name STREQUAL ${possible_compiler_name})
+        set(Fortran_COMPILER_ID ${possible_id})
+        _fortran_msg("${_desc} - ${Fortran_COMPILER_ID}")
+        set(Fortran_COMPILER_ID ${Fortran_COMPILER_ID} PARENT_SCOPE)
+        return()
+      endif()
+    endforeach()
+  endforeach()
+
+  # Resolve symlink
+  #get_filename_component(compiler_executable ${compiler_executable} REALPATH) # Should we do this ?
+  # Get unique identifier for build caching
+  string(SHA256 compiler_path_hash ${compiler_executable})
+  string(SUBSTRING ${compiler_path_hash} 0 7 compiler_build_cache_id)
+  set(compiler_build_cache_id "${compiler_name}_${compiler_build_cache_id}")
+  # Attempt to retrieve compiler id
+  _fortran_run_compiler_test(${compiler_build_cache_id}
+    -DCMAKE_Fortran_COMPILER:FILEPATH=${compiler_executable}
+    )
+  _fortran_msg("${_desc} - ${Fortran_COMPILER_ID}")
+  set(Fortran_COMPILER_ID ${Fortran_COMPILER_ID} PARENT_SCOPE)
+endfunction()
+
 function(_fortran_set_unix_runtime_cache_variables)
   # Caller must defined these variables
    _fortran_assert(DEFINED _id)
@@ -320,35 +432,55 @@ function(_fortran_set_unix_runtime_cache_variables)
   _fortran_set_runtime_cache_variables()
 endfunction()
 
-# First, prefer Fortran vendor
+# Check for Fortran_<compile_id>_EXECUTABLE variable
 if(NOT DEFINED Fortran_COMPILER_ID)
+  set(_msg "Checking if Fortran_<compile_id>_EXECUTABLE is defined")
+  _fortran_msg("${_msg}")
+  foreach(_possible_id IN LISTS Fortran_COMPILER_VENDORS)
+    if(Fortran_${_possible_id}_EXECUTABLE)
+      set(Fortran_COMPILER_ID ${_possible_id})
+      _fortran_msg("${_msg} - yes [compiler_id:${Fortran_COMPILER_ID};compiler:${Fortran_${Fortran_COMPILER_ID}_EXECUTABLE}]")
+      break()
+    endif()
+  endforeach()
+  if(NOT DEFINED Fortran_COMPILER_ID)
+    _fortran_msg("${_msg} - no")
+  endif()
+endif()
+
+# Check for enabled Fortran language
+if(NOT DEFINED Fortran_COMPILER_ID)
+  set(_msg "Checking if CMAKE_Fortran_COMPILER_ID is defined")
+  _fortran_msg("${_msg}")
   if(CMAKE_Fortran_COMPILER_ID)
     set(Fortran_COMPILER_ID ${CMAKE_Fortran_COMPILER_ID})
-  endif()
-endif()
-
-# Then, prefer already-enabled languages
-if(NOT DEFINED Fortran_COMPILER_ID)
-  get_property(_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
-  list(REMOVE_ITEM _languages "Fortran")
-  if(_languages)
-    list(GET _languages 0 _first_lang)
-    set(Fortran_COMPILER_ID ${CMAKE_${_first_lang}_COMPILER_ID})
-  endif()
-  unset(_languages)
-endif()
-
-if(NOT DEFINED Fortran_COMPILER_ID)
-  if(Fortran_FIND_REQUIRED)
-    message(FATAL_ERROR "Fortran_COMPILER_ID variable must be set")
+    _fortran_msg("${_msg} - ${Fortran_COMPILER_ID}")
   else()
-    # TODO Display message
-    return()
+    _fortran_msg("${_msg} - no")
+  endif()
+
+  # If a CMAKE_Fortran_COMPILER is provided without CMAKE_Fortran_COMPILER_ID, let's retrieve it
+  if(CMAKE_Fortran_COMPILER AND NOT CMAKE_Fortran_COMPILER_ID)
+    #_fortran_msg("CMAKE_Fortran_COMPILER is set without CMAKE_Fortran_COMPILER_ID")
+    _fortran_get_compiler_id(${CMAKE_Fortran_COMPILER}) # Set Fortran_COMPILER_ID in current scope
   endif()
 endif()
 
-# compiler executable
-_fortran_find_vendor_compiler_executable(${Fortran_COMPILER_ID})
+# Attempt to find any fortran compiler
+if(NOT DEFINED Fortran_COMPILER_ID)
+  _fortran_find_any_compiler_executable()
+endif()
+
+if(Fortran_COMPILER_ID IN_LIST Fortran_COMPILER_VENDORS AND NOT DEFINED Fortran_${Fortran_COMPILER_ID}_EXECUTABLE)
+  set(_msg "Looking up ${Fortran_COMPILER_ID} Fortran compiler")
+  _fortran_msg("${_msg}")
+  _fortran_find_vendor_compiler_executable(${Fortran_COMPILER_ID})
+  if(Fortran_${Fortran_COMPILER_ID}_EXECUTABLE)
+    _fortran_msg("${_msg} - ${Fortran_${Fortran_COMPILER_ID}_EXECUTABLE}")
+  else()
+    _fortran_msg("${_msg} - not found")
+  endif()
+endif()
 
 # convenient shorter variable name
 set(_id ${Fortran_COMPILER_ID})
@@ -405,31 +537,32 @@ elseif(_id MATCHES "^GNU|G95|Intel|SunPro|Cray|G95|PathScale|Absoft|XL|VisualAge
 
 elseif(_id MATCHES "^zOS|HP$")
   message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is not yet supported")
-
-else()
-  message(FATAL_ERROR "Setting Fortran_COMPILER_ID to '${_id}' is invalid")
 endif()
 
-# all variables must be defined
-_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
-_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
-_fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
-_fortran_assert(DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
-_fortran_assert(DEFINED Fortran_${_id}_RUNTIME_DIRECTORIES)
+if(_id)
+  list(APPEND _additional_required_vars Fortran_${_id}_EXECUTABLE)
 
-# directory variable is required if corresponding library variable is non-empty
-if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
-  list(APPEND _additional_required_vars Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
-endif()
-if(Fortran_${_id}_RUNTIME_LIBRARIES)
-  list(APPEND _additional_required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
+  # all variables must be defined
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+  _fortran_assert(DEFINED Fortran_${_id}_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES)
+  _fortran_assert(DEFINED Fortran_${_id}_RUNTIME_LIBRARIES)
+  _fortran_assert(DEFINED Fortran_${_id}_RUNTIME_DIRECTORIES)
+
+  # directory variable is required if corresponding library variable is non-empty
+  if(Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
+    list(APPEND _additional_required_vars Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES)
+  endif()
+  if(Fortran_${_id}_RUNTIME_LIBRARIES)
+    list(APPEND _additional_required_vars Fortran_${_id}_RUNTIME_DIRECTORIES)
+  endif()
 endif()
 
 # outputs
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Fortran
   REQUIRED_VARS
-    Fortran_${_id}_EXECUTABLE
+    Fortran_COMPILER_ID
     ${_additional_required_vars}
   )
 
@@ -437,6 +570,7 @@ find_package_handle_standard_args(Fortran
 if(NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES
     AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES
     AND NOT DEFINED CMAKE_Fortran_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES
+    AND _id
     AND Fortran_${_id}_IMPLICIT_LINK_LIBRARIES)
   set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
   set(CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES ${Fortran_${_id}_IMPLICIT_LINK_DIRECTORIES})
