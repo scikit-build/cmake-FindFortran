@@ -72,7 +72,7 @@ This module will set the following variables in your project:
 
   List of ``<Fortran_COMPILER_ID>`` runtime libraries.
 
-  These libraries must be distributed along side the compiled binaries. This may be done
+  These libraries may be distributed along side the compiled binaries. This may be done
   by explicitly using :command:`install` or by setting the variable ``CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS``
   when using :module:`InstallRequiredSystemLibraries` module.
 
@@ -92,7 +92,71 @@ This module will set the following variables in your project:
 
   List of short unique string identifying supported Fortran compiler vendors.
 
+
+Functions
+^^^^^^^^^
+
+The module provides the following functions
+
+.. command:: Fortran_InstallLibrary
+
+  This function behaves like the :command:`install` command unless the filename
+  is both a symlink and the resolved filename is of the form `libname.so.1[.2[.3]]`.
+  In that case, a symlink for each version is installed: ``libname.so``,
+  ``libname.so.1`` and ``libname.so.1.2``
+
+  ::
+
+    Fortran_InstallLibrary(
+      FILES file1 ...
+      DESTINATION <dir>
+      [PERMISSIONS permissions...]
+      [COMPONENT <component>]
+      )
+
 #]=======================================================================]
+
+function(Fortran_InstallLibrary)
+  set(options)
+  set(oneValueArgs DESTINATION COMPONENT)
+  set(multiValueArgs FILES PERMISSIONS)
+  cmake_parse_arguments(_ffil "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  foreach(var DESTINATION FILES)
+    if(NOT DEFINED _ffil_${var})
+      message(FATAL_ERROR "Argument ${var} is required !")
+    endif()
+  endforeach()
+
+  if(DEFINED _ffil_PERMISSIONS)
+    set(install_permissions PERMISSIONS ${_ffil_PERMISSIONS})
+  endif()
+  foreach(_lib_path IN LISTS _ffil_FILES)
+    get_filename_component(_resolved_lib_path ${_lib_path} REALPATH)
+    get_filename_component(_resolved_lib_filename ${_resolved_lib_path} NAME)
+    # Extract version
+    install(FILES ${_resolved_lib_path} COMPONENT ${_ffil_COMPONENT} DESTINATION ${_ffil_DESTINATION} ${install_permissions})
+    if(_resolved_lib_filename MATCHES "^(.+\.so)(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$")
+      set(_base ${CMAKE_MATCH_1})
+      set(_x ${CMAKE_MATCH_2})
+      set(_y ${CMAKE_MATCH_3})
+      set(_link_names "${_base}")
+      if(_x)
+        list(APPEND _link_names "${_base}${_x}")
+      endif()
+      if(_y)
+        list(APPEND _link_names "${_base}${_x}${_y}")
+      endif()
+      foreach(link IN LISTS _link_names)
+        install(CODE "execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+\"\${CMAKE_INSTALL_PREFIX}/${_ffil_DESTINATION}/${_resolved_lib_filename}\" \"\${CMAKE_INSTALL_PREFIX}/${_ffil_DESTINATION}/${link}\"
+)"
+          COMPONENT ${_ffil_COMPONENT}
+          )
+      endforeach()
+    endif()
+  endforeach()
+endfunction()
 
 function(_fortran_assert)
   if(NOT (${ARGN}))
@@ -225,26 +289,7 @@ function(_fortran_set_runtime_cache_variables)
         unset(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY CACHE) # Do not pollute the project cache
         continue()
       endif()
-      # Resolve symlinks:
-      #
-      #  If the resolved library name is different, it means it is most likely a
-      #  versioned library name.
-      #
-      #  In this case, we copy the real file to a temporary location renaming it
-      #  using the unversioned file name.
-      #
-      #  This helps packaging the library when using the "install()" command.
-      get_filename_component(_resolved_lib_path ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} REALPATH)
-      get_filename_component(_resolved_lib_filename ${_resolved_lib_path} NAME)
-      get_filename_component(_lib_filename ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} NAME)
-      if(NOT ${_lib_filename} STREQUAL "${_resolved_lib_filename}")
-        set(_copied_lib_dir ${CMAKE_BINARY_DIR}/CMakeFiles/Fortran${_id}RuntimeLibs)
-        file(COPY ${_resolved_lib_path} DESTINATION ${_copied_lib_dir})
-        file(RENAME ${_copied_lib_dir}/${_resolved_lib_filename} ${_copied_lib_dir}/${_lib_filename})
-        # Override existing cache entry
-        set(Fortran_${_id}_${_lib}_RUNTIME_LIBRARY ${_copied_lib_dir}/${_lib_filename}
-          CACHE FILEPATH "Patch to unversioned ${_lib} runtime library" FORCE)
-      endif()
+
       list(APPEND _runtime_libs ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY})
 
       get_filename_component(_runtime_dir ${Fortran_${_id}_${_lib}_RUNTIME_LIBRARY} DIRECTORY)
