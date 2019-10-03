@@ -562,6 +562,10 @@ if(_id STREQUAL "Flang")
 
     # Set runtime variables
     set(_link_libs ${Fortran_${_id}_IMPLICIT_LINK_LIBRARIES})
+    
+    # Explicitly add libomp for Flang build runtime libs
+    list(APPEND _link_libs libomp)
+    
     set(_runtime_lib_dirs ${_flang_bin_dir})
     set(_runtime_lib_suffix ".dll")
     _fortran_set_runtime_cache_variables()
